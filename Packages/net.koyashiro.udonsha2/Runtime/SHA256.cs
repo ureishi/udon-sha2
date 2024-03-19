@@ -7,9 +7,9 @@ namespace Koyashiro.UdonSHA2
         private const int MESSAGE_BLOCK_LENGTH = 64;
         public const int DIGEST_LENGTH = 32;
 
-        const int sizeofUint = 4;
-        const int sizeofLong = 8;
-        const string initialValues_Base64Str =
+        private const int UINT_SIZE = 4;
+        private const int LONG_SIZE = 8;
+        private const string initialValues_Base64Str =
             "mC+KQpFEN3HP+8C1pdu16VvCVjnxEfFZpII/ktVeHKuYqgfYAVuDEr6FMSTDfQxV" +
             "dF2+cv6x3oCnBtybdPGbwcFpm+SGR77vxp3BD8yhDCRvLOktqoR0StypsFzaiPl2" +
             "UlE+mG3GMajIJwOwx39Zv/ML4MZHkafVUWPKBmcpKRSFCrcnOCEbLvxtLE0TDThT" +
@@ -35,14 +35,14 @@ namespace Koyashiro.UdonSHA2
             };
             */
             var K = new uint[MESSAGE_BLOCK_LENGTH];
-            Buffer.BlockCopy(initialValues_Bytes, offset, K, 0, MESSAGE_BLOCK_LENGTH * sizeofUint);
-            offset += MESSAGE_BLOCK_LENGTH * sizeofUint;
+            Buffer.BlockCopy(initialValues_Bytes, offset, K, 0, MESSAGE_BLOCK_LENGTH * UINT_SIZE);
+            offset += MESSAGE_BLOCK_LENGTH * UINT_SIZE;
 
             /*
             var hBuf = new uint[] { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
             */
             var hBuf = new uint[8];
-            Buffer.BlockCopy(initialValues_Bytes, offset, hBuf, 0, 8 * sizeofUint);
+            Buffer.BlockCopy(initialValues_Bytes, offset, hBuf, 0, 8 * UINT_SIZE);
 
             var paddedBuffer = Pad(buffer);
             var wb = Divide(paddedBuffer);
@@ -107,7 +107,7 @@ namespace Koyashiro.UdonSHA2
             var bitsLength = inputLength * 8L;
             var bitsLength_Bytes = BitConverter.GetBytes(bitsLength);
             Array.Reverse(bitsLength_Bytes);
-            Array.Copy(bitsLength_Bytes, 0, buffer, bufferLength - sizeofLong, sizeofLong);
+            Array.Copy(bitsLength_Bytes, 0, buffer, bufferLength - LONG_SIZE, LONG_SIZE);
 
             return buffer;
         }
@@ -123,7 +123,7 @@ namespace Koyashiro.UdonSHA2
                 var ix = i * MESSAGE_BLOCK_LENGTH;
                 Array.Reverse(input, ix, MESSAGE_BLOCK_LENGTH);
                 Buffer.BlockCopy(input, ix, mu_i, 0, MESSAGE_BLOCK_LENGTH);
-                Array.Reverse(mu_i, 0, MESSAGE_BLOCK_LENGTH / sizeofUint);
+                Array.Reverse(mu_i, 0, MESSAGE_BLOCK_LENGTH / UINT_SIZE);
                 mu[i] = mu_i;
             }
 
