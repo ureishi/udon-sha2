@@ -20,7 +20,6 @@ namespace Koyashiro.UdonSHA2
         public static byte[] ComputeHash(byte[] buffer)
         {
             var initialValues_Bytes = Convert.FromBase64String(initialValues_Base64Str);
-            var offset = 0;
 
             /*
             var K = new uint[MESSAGE_BLOCK_LENGTH] {
@@ -35,14 +34,13 @@ namespace Koyashiro.UdonSHA2
             };
             */
             var K = new uint[MESSAGE_BLOCK_LENGTH];
-            Buffer.BlockCopy(initialValues_Bytes, offset, K, 0, MESSAGE_BLOCK_LENGTH * UINT_SIZE);
-            offset += MESSAGE_BLOCK_LENGTH * UINT_SIZE;
+            Buffer.BlockCopy(initialValues_Bytes, 0, K, 0, MESSAGE_BLOCK_LENGTH * UINT_SIZE);
 
             /*
             var hBuf = new uint[] { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
             */
             var hBuf = new uint[8];
-            Buffer.BlockCopy(initialValues_Bytes, offset, hBuf, 0, 8 * UINT_SIZE);
+            Buffer.BlockCopy(initialValues_Bytes, MESSAGE_BLOCK_LENGTH * UINT_SIZE, hBuf, 0, 8 * UINT_SIZE);
 
             var paddedBuffer = Pad(buffer);
             var wb = Divide(paddedBuffer);
