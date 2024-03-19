@@ -7,8 +7,22 @@ namespace Koyashiro.UdonSHA2
         private const int MESSAGE_BLOCK_LENGTH = 64;
         public const int DIGEST_LENGTH = 32;
 
+        const int sizeofUint = 4;
+        const int sizeofLong = 8;
+        const string initialValues_Base64Str =
+            "mC+KQpFEN3HP+8C1pdu16VvCVjnxEfFZpII/ktVeHKuYqgfYAVuDEr6FMSTDfQxV" +
+            "dF2+cv6x3oCnBtybdPGbwcFpm+SGR77vxp3BD8yhDCRvLOktqoR0StypsFzaiPl2" +
+            "UlE+mG3GMajIJwOwx39Zv/ML4MZHkafVUWPKBmcpKRSFCrcnOCEbLvxtLE0TDThT" +
+            "VHMKZbsKanYuycKBhSxykqHov6JLZhqocItLwqNRbMcZ6JLRJAaZ1oU1DvRwoGoQ" +
+            "FsGkGQhsNx5Md0gntbywNLMMHDlKqthOT8qcW/NvLmjugo90b2OleBR4yIQIAseM" +
+            "+v++kOtsUKT3o/m+8nhxxmfmCWqFrme7cvNuPDr1T6V/Ug5RjGgFm6vZgx8ZzeBb";
+
         public static byte[] ComputeHash(byte[] buffer)
         {
+            var initialValues_Bytes = Convert.FromBase64String(initialValues_Base64Str);
+            var offset = 0;
+
+            /*
             var K = new uint[MESSAGE_BLOCK_LENGTH] {
                 0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
                 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
@@ -19,8 +33,16 @@ namespace Koyashiro.UdonSHA2
                 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
                 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
             };
+            */
+            var K = new uint[MESSAGE_BLOCK_LENGTH];
+            Buffer.BlockCopy(initialValues_Bytes, offset, K, 0, MESSAGE_BLOCK_LENGTH * sizeofUint);
+            offset += MESSAGE_BLOCK_LENGTH * sizeofUint;
 
+            /*
             var hBuf = new uint[] { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
+            */
+            var hBuf = new uint[8];
+            Buffer.BlockCopy(initialValues_Bytes, offset, hBuf, 0, 8 * sizeofUint);
 
             var paddedBuffer = Pad(buffer);
             var wb = Divide(paddedBuffer);
@@ -66,13 +88,10 @@ namespace Koyashiro.UdonSHA2
             }
 
             var digest = new byte[DIGEST_LENGTH];
-            for (var i = 0; i < DIGEST_LENGTH / 4; i++)
-            {
-                digest[4 * i] = (byte)((hBuf[i] >> 24) & 0xff);
-                digest[4 * i + 1] = (byte)((hBuf[i] >> 16) & 0xff);
-                digest[4 * i + 2] = (byte)((hBuf[i] >> 8) & 0xff);
-                digest[4 * i + 3] = (byte)(hBuf[i] & 0xff);
-            }
+            Array.Reverse(hBuf);
+            Buffer.BlockCopy(hBuf, 0, digest, 0, DIGEST_LENGTH);
+            Array.Reverse(digest);
+
             return digest;
         }
 
@@ -86,14 +105,9 @@ namespace Koyashiro.UdonSHA2
             buffer[inputLength] = 0x80;
 
             var bitsLength = inputLength * 8L;
-            buffer[bufferLength - 8] = (byte)((bitsLength >> 56) & 0xff);
-            buffer[bufferLength - 7] = (byte)((bitsLength >> 48) & 0xff);
-            buffer[bufferLength - 6] = (byte)((bitsLength >> 40) & 0xff);
-            buffer[bufferLength - 5] = (byte)((bitsLength >> 32) & 0xff);
-            buffer[bufferLength - 4] = (byte)((bitsLength >> 24) & 0xff);
-            buffer[bufferLength - 3] = (byte)((bitsLength >> 16) & 0xff);
-            buffer[bufferLength - 2] = (byte)((bitsLength >> 8) & 0xff);
-            buffer[bufferLength - 1] = (byte)(bitsLength & 0xff);
+            var bitsLength_Bytes = BitConverter.GetBytes(bitsLength);
+            Array.Reverse(bitsLength_Bytes);
+            Array.Copy(bitsLength_Bytes, 0, buffer, bufferLength - sizeofLong, sizeofLong);
 
             return buffer;
         }
@@ -105,13 +119,12 @@ namespace Koyashiro.UdonSHA2
             var mu = new uint[mLength][];
             for (var i = 0; i < mLength; i++)
             {
-                mu[i] = new uint[MESSAGE_BLOCK_LENGTH];
+                var mu_i = new uint[MESSAGE_BLOCK_LENGTH];
                 var ix = i * MESSAGE_BLOCK_LENGTH;
-                for (var j = 0; j < 16; j++)
-                {
-                    var ifs = ix + (4 * j);
-                    mu[i][j] = ((uint)input[ifs] << 24) | ((uint)input[ifs + 1] << 16) | ((uint)input[ifs + 2] << 8) | ((uint)input[ifs + 3]);
-                }
+                Array.Reverse(input, ix, MESSAGE_BLOCK_LENGTH);
+                Buffer.BlockCopy(input, ix, mu_i, 0, MESSAGE_BLOCK_LENGTH);
+                Array.Reverse(mu_i, 0, MESSAGE_BLOCK_LENGTH / sizeofUint);
+                mu[i] = mu_i;
             }
 
             return mu;
